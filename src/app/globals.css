@@ -1,1 +1,19 @@
 @import 'tailwindcss';
+
+/* Design tokens taken from the VendorFlow prototype. Tailwind v4 turns these
+   into utilities: bg-brand, text-gold, border-line, etc. */
+@theme {
+  --color-brand: #16352b;
+  --color-brand-light: #1e4a3b;
+  --color-gold: #c2a24a;
+  --color-surface: #f6f7f8;
+  --color-panel: #ffffff;
+  --color-ink: #14181c;
+  --color-muted: #5c6470;
+  --color-line: #e3e5e8;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
