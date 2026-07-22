@@ -36,11 +36,17 @@ export type LoginBody = {
   password: string;
 };
 
+export type AcceptInviteBody = {
+  token: string;
+  password: string;
+};
+
 // Mirrors api: src/contracts/user.ts
 export type UserDto = {
   id: string;
   email: string;
   role: Role;
+  isActive: boolean;
   companyId: string;
   createdAt: string;
 };
@@ -48,3 +54,24 @@ export type UserDto = {
 export type UsersResponse = {
   users: UserDto[];
 };
+
+export type InviteUserBody = {
+  email: string;
+  role: 'ADMIN' | 'FINANCE' | 'PROCUREMENT';
+};
+
+export type UpdateUserBody = {
+  role?: 'ADMIN' | 'FINANCE' | 'PROCUREMENT';
+  isActive?: boolean;
+};
+
+export type PendingInvite = {
+  id: string;
+  email: string;
+  role: Role;
+  expiresAt: string;
+  createdAt: string;
+};
+
+export type InviteResponse = { invitation: PendingInvite };
+export type PendingInvitesResponse = { invitations: PendingInvite[] };
