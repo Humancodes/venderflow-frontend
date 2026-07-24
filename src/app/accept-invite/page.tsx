@@ -27,8 +27,8 @@ function AcceptInviteInner() {
   const onSubmit = async (v: Values) => {
     setServerError(null);
     try {
-      await acceptInvite({ token, password: v.password });
-      router.push('/dashboard');
+      const res = await acceptInvite({ token, password: v.password });
+      router.push(res.user.role === 'VENDOR' ? '/portal' : '/dashboard');
     } catch (e) {
       setServerError(e instanceof ApiError ? e.message : 'Something went wrong');
     }

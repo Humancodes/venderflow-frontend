@@ -28,8 +28,8 @@ export default function LoginPage() {
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
     try {
-      await login(values);
-      router.push('/dashboard');
+      const res = await login(values);
+      router.push(res.user.role === 'VENDOR' ? '/portal' : '/dashboard');
     } catch (e) {
       setServerError(e instanceof ApiError ? e.message : 'Something went wrong');
     }
