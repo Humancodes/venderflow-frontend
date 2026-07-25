@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
+import { Spinner } from '@/components/Ui';
 
 // Wrap protected pages. While the initial silent refresh is in flight we show a
 // loading state; if it resolves to unauthenticated we bounce to /login. This is
@@ -20,7 +21,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (status !== 'authenticated') {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted">Loading…</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <Spinner />
+      </div>
     );
   }
 

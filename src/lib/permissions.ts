@@ -41,3 +41,11 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
 export function roleHasPermission(role: Role, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role].includes(permission);
 }
+
+// Gate UI on the user's actual permission set (from their custom role).
+export function hasPermission(
+  permissions: string[] | undefined,
+  permission: Permission,
+): boolean {
+  return !!permissions?.includes(permission);
+}

@@ -6,18 +6,22 @@ import { AppShell } from '@/components/AppShell';
 import { InviteDialog } from '@/components/InviteDialog';
 import { useAuthStore } from '@/stores/auth';
 import { fetchPendingInvites, fetchUsers, updateUser } from '@/lib/api/users';
+import { fetchRoles } from '@/lib/api/roles';
 import { ApiError } from '@/lib/api/client';
-import { roleHasPermission } from '@/lib/permissions';
-import type { PendingInvite, UserDto } from '@/lib/types';
-
-const ROLE_OPTIONS = ['ADMIN', 'FINANCE', 'PROCUREMENT'] as const;
+import { hasPermission } from '@/lib/permissions';
+import { useToast } from '@/components/Toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import type { PendingInvite, RoleDto, UserDto } from '@/lib/types';
 
 function TeamScreen() {
+  const toast = useToast();
   const me = useAuthStore((s) => s.user);
-  const canRead = me ? roleHasPermission(me.role, 'user:read') : false;
-  const canManage = me ? roleHasPermission(me.role, 'user:manage') : false;
+  const [userToDeactivate, setUserToDeactivate] = useState<UserDto | null>(null);
+  const canRead = hasPermission(me?.permissions, 'user:read');
+  const canManage = hasPermission(me?.permissions, 'user:manage');
 
   const [users, setUsers] = useState<UserDto[] | null>(null);
+  const [roles, setRoles] = useState<RoleDto[]>([]);
   const [invites, setInvites] = useState<PendingInvite[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showInvite, setShowInvite] = useState(false);
@@ -28,8 +32,9 @@ function TeamScreen() {
       const usersRes = await fetchUsers();
       setUsers(usersRes.users);
       if (canManage) {
-        const invRes = await fetchPendingInvites();
+        const [invRes, rolesRes] = await Promise.all([fetchPendingInvites(), fetchRoles()]);
         setInvites(invRes.invitations);
+        setRoles(rolesRes.roles);
       }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to load team');
@@ -40,23 +45,23 @@ function TeamScreen() {
     void load();
   }, [load]);
 
-  const onRoleChange = async (id: string, role: (typeof ROLE_OPTIONS)[number]) => {
-    setError(null);
+  const onRoleChange = async (id: string, roleId: string) => {
     try {
-      await updateUser(id, { role });
+      await updateUser(id, { roleId });
       await load();
+      toast.success('Role updated');
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Update failed');
+      toast.error(e instanceof ApiError ? e.message : 'Update failed');
     }
   };
 
   const onToggleActive = async (u: UserDto) => {
-    setError(null);
     try {
       await updateUser(u.id, { isActive: !u.isActive });
       await load();
+      toast.success(u.isActive ? 'User deactivated' : 'User reactivated');
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Update failed');
+      toast.error(e instanceof ApiError ? e.message : 'Update failed');
     }
   };
 
@@ -75,17 +80,17 @@ function TeamScreen() {
       {!canRead ? (
         <div className="rounded-xl border border-line bg-panel p-6">
           <p className="text-sm text-muted">
-            Your role ({me?.role}) does not have access to team management.
+            Your role does not have access to team management.
           </p>
         </div>
       ) : (
         <>
           {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
-          <div className="overflow-hidden rounded-xl border border-line bg-panel">
+          <div className="overflow-x-auto rounded-xl border border-line bg-panel">
             {!users && <p className="px-4 py-3 text-sm text-muted">Loading…</p>}
             {users && (
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="border-b border-line text-xs uppercase text-muted">
                   <tr>
                     <th className="px-4 py-3 font-medium">Email</th>
@@ -104,23 +109,21 @@ function TeamScreen() {
                           {isSelf && <span className="ml-2 text-xs text-muted">(you)</span>}
                         </td>
                         <td className="px-4 py-3">
-                          {canManage && !isSelf ? (
+                          {canManage && !isSelf && roles.length > 0 ? (
                             <select
-                              value={u.role}
-                              onChange={(e) =>
-                                onRoleChange(u.id, e.target.value as (typeof ROLE_OPTIONS)[number])
-                              }
+                              value={u.roleId ?? ''}
+                              onChange={(e) => onRoleChange(u.id, e.target.value)}
                               className="rounded-lg border border-line bg-white px-2 py-1 text-xs"
                             >
-                              {ROLE_OPTIONS.map((r) => (
-                                <option key={r} value={r}>
-                                  {r}
+                              {roles.map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  {r.name}
                                 </option>
                               ))}
                             </select>
                           ) : (
                             <span className="rounded-full bg-brand/10 px-2 py-0.5 text-xs font-medium text-brand">
-                              {u.role}
+                              {u.roleName ?? '—'}
                             </span>
                           )}
                         </td>
@@ -139,7 +142,9 @@ function TeamScreen() {
                           <td className="px-4 py-3">
                             {!isSelf && (
                               <button
-                                onClick={() => onToggleActive(u)}
+                                onClick={() =>
+                                  u.isActive ? setUserToDeactivate(u) : onToggleActive(u)
+                                }
                                 className="text-xs font-medium text-brand hover:underline"
                               >
                                 {u.isActive ? 'Deactivate' : 'Reactivate'}
@@ -158,8 +163,8 @@ function TeamScreen() {
           {canManage && invites.length > 0 && (
             <div className="mt-8">
               <h2 className="text-base font-semibold text-ink">Pending invitations</h2>
-              <div className="mt-3 overflow-hidden rounded-xl border border-line bg-panel">
-                <table className="w-full text-left text-sm">
+              <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-panel">
+                <table className="w-full min-w-[640px] text-left text-sm">
                   <thead className="border-b border-line text-xs uppercase text-muted">
                     <tr>
                       <th className="px-4 py-3 font-medium">Email</th>
@@ -171,7 +176,7 @@ function TeamScreen() {
                     {invites.map((inv) => (
                       <tr key={inv.id} className="border-b border-line last:border-0">
                         <td className="px-4 py-3 text-ink">{inv.email}</td>
-                        <td className="px-4 py-3 text-muted">{inv.role}</td>
+                        <td className="px-4 py-3 text-muted">{inv.roleName ?? '—'}</td>
                         <td className="px-4 py-3 text-muted">
                           {new Date(inv.expiresAt).toLocaleDateString()}
                         </td>
@@ -187,6 +192,17 @@ function TeamScreen() {
 
       {showInvite && (
         <InviteDialog onClose={() => setShowInvite(false)} onInvited={() => void load()} />
+      )}
+
+      {userToDeactivate && (
+        <ConfirmDialog
+          title={`Deactivate ${userToDeactivate.email}?`}
+          message="They will be signed out and cannot log in until reactivated."
+          confirmLabel="Deactivate"
+          danger
+          onConfirm={() => onToggleActive(userToDeactivate)}
+          onClose={() => setUserToDeactivate(null)}
+        />
       )}
     </AppShell>
   );

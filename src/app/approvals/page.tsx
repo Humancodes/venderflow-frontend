@@ -5,9 +5,11 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { AppShell } from '@/components/AppShell';
 import { approveDocument, fetchApprovalQueue, rejectDocument } from '@/lib/api/approvals';
 import { ApiError } from '@/lib/api/client';
+import { useToast } from '@/components/Toast';
 import type { ApprovalQueueItem } from '@/lib/types';
 
 function ApprovalsQueue() {
+  const toast = useToast();
   const [items, setItems] = useState<ApprovalQueueItem[] | null>(null);
   const [comments, setComments] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
@@ -35,8 +37,9 @@ function ApprovalsQueue() {
       if (decision === 'approve') await approveDocument(documentId, comment);
       else await rejectDocument(documentId, comment);
       await load();
+      toast.success(decision === 'approve' ? 'Document approved' : 'Document rejected');
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Action failed');
+      toast.error(e instanceof ApiError ? e.message : 'Action failed');
     } finally {
       setBusy(null);
     }

@@ -8,6 +8,19 @@ export type Role = 'ADMIN' | 'FINANCE' | 'PROCUREMENT' | 'VENDOR';
 // Mirrors api: prisma enum PlanTier
 export type PlanTier = 'FREE' | 'STARTER' | 'GROWTH' | 'BUSINESS';
 
+// Mirrors api: prisma enum SubscriptionStatus
+export type SubscriptionStatus = 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+
+// Mirrors api: src/contracts/billing.ts
+export type SubscriptionDto = {
+  plan: PlanTier;
+  status: SubscriptionStatus;
+  vendorsUsed: number;
+  vendorLimit: number | null;
+};
+export type SubscriptionResponse = { subscription: SubscriptionDto };
+export type CheckoutResponse = { url: string };
+
 // Mirrors api: src/contracts/company.ts
 export type CompanyDto = { id: string; name: string; plan: PlanTier };
 export type CompanyResponse = { company: CompanyDto };
@@ -23,7 +36,8 @@ export type HealthResponse = {
 export type AuthUser = {
   id: string;
   email: string;
-  role: Role;
+  role: Role; // legacy; used only for VENDOR routing
+  permissions: string[]; // effective permissions, for UI gating
   companyId: string;
 };
 
@@ -52,7 +66,8 @@ export type AcceptInviteBody = {
 export type UserDto = {
   id: string;
   email: string;
-  role: Role;
+  roleId: string | null;
+  roleName: string | null;
   isActive: boolean;
   companyId: string;
   createdAt: string;
@@ -64,21 +79,34 @@ export type UsersResponse = {
 
 export type InviteUserBody = {
   email: string;
-  role: 'ADMIN' | 'FINANCE' | 'PROCUREMENT';
+  roleId: string;
 };
 
 export type UpdateUserBody = {
-  role?: 'ADMIN' | 'FINANCE' | 'PROCUREMENT';
+  roleId?: string;
   isActive?: boolean;
 };
 
 export type PendingInvite = {
   id: string;
   email: string;
-  role: Role;
+  roleName: string | null;
   expiresAt: string;
   createdAt: string;
 };
+
+// Mirrors api: src/contracts/role.ts (Permission comes from permissions.ts)
+export type RoleDto = {
+  id: string;
+  name: string;
+  permissions: import('./permissions').Permission[];
+  isSystem: boolean;
+  createdAt: string;
+};
+export type RolesResponse = { roles: RoleDto[] };
+export type RoleResponse = { role: RoleDto };
+export type CreateRoleBody = { name: string; permissions: import('./permissions').Permission[] };
+export type UpdateRoleBody = { name?: string; permissions?: import('./permissions').Permission[] };
 
 export type InviteResponse = { invitation: PendingInvite };
 export type PendingInvitesResponse = { invitations: PendingInvite[] };

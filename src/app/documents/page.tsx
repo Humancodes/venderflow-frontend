@@ -6,12 +6,16 @@ import { AppShell } from '@/components/AppShell';
 import { useAuthStore } from '@/stores/auth';
 import { createRequirement, deleteRequirement, fetchRequirements } from '@/lib/api/documents';
 import { ApiError } from '@/lib/api/client';
-import { roleHasPermission } from '@/lib/permissions';
+import { hasPermission } from '@/lib/permissions';
+import { useToast } from '@/components/Toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { RequirementDto } from '@/lib/types';
 
 function Requirements() {
+  const toast = useToast();
   const me = useAuthStore((s) => s.user);
-  const canManage = me ? roleHasPermission(me.role, 'template:manage') : false;
+  const canManage = hasPermission(me?.permissions, 'template:manage');
+  const [reqToDelete, setReqToDelete] = useState<RequirementDto | null>(null);
 
   const [items, setItems] = useState<RequirementDto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,18 +46,19 @@ function Requirements() {
       setDocumentType('');
       setExpiresInDays('');
       await load();
+      toast.success('Requirement added');
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Failed to add');
+      toast.error(e instanceof ApiError ? e.message : 'Failed to add');
     }
   };
 
   const onDelete = async (id: string) => {
-    setError(null);
     try {
       await deleteRequirement(id);
       await load();
+      toast.success('Requirement deleted');
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Failed to delete');
+      toast.error(e instanceof ApiError ? e.message : 'Failed to delete');
     }
   };
 
@@ -94,8 +99,8 @@ function Requirements() {
 
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-line bg-panel">
-        <table className="w-full text-left text-sm">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-panel">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-line text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-3 font-medium">Document type</th>
@@ -122,7 +127,7 @@ function Requirements() {
                 {canManage && (
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => onDelete(r.id)}
+                      onClick={() => setReqToDelete(r)}
                       className="text-xs font-medium text-red-600 hover:underline"
                     >
                       Delete
@@ -134,6 +139,17 @@ function Requirements() {
           </tbody>
         </table>
       </div>
+
+      {reqToDelete && (
+        <ConfirmDialog
+          title={`Delete "${reqToDelete.documentType}"?`}
+          message="Vendors will no longer be asked for this document."
+          confirmLabel="Delete"
+          danger
+          onConfirm={() => onDelete(reqToDelete.id)}
+          onClose={() => setReqToDelete(null)}
+        />
+      )}
     </AppShell>
   );
 }

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { createVendor } from '@/lib/api/vendors';
 import { ApiError } from '@/lib/api/client';
+import { useToast } from '@/components/Toast';
 import { inputClass, primaryButtonClass } from '@/components/AuthLayout';
 
 const schema = z.object({
@@ -15,6 +16,7 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 export function AddVendorDialog({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const toast = useToast();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -26,6 +28,7 @@ export function AddVendorDialog({ onClose, onAdded }: { onClose: () => void; onA
     setServerError(null);
     try {
       await createVendor(v);
+      toast.success('Vendor added');
       onAdded();
       onClose();
     } catch (e) {

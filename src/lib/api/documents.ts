@@ -47,6 +47,19 @@ export function fetchMyDownloadUrl(documentId: string): Promise<DownloadUrlRespo
   return apiFetch<DownloadUrlResponse>(`/portal/documents/${documentId}/download-url`);
 }
 
+// --- Staff upload-on-behalf ---
+export function staffUploadUrl(vendorId: string, body: UploadUrlBody): Promise<UploadUrlResponse> {
+  return apiFetch<UploadUrlResponse>(`/vendors/${vendorId}/documents/upload-url`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+export function staffConfirm(documentId: string) {
+  return apiFetch<{ documentId: string; status: string }>(`/documents/${documentId}/confirm`, {
+    method: 'POST',
+  });
+}
+
 // Uploads a file DIRECTLY to the presigned URL (object storage), NOT through
 // our api. No auth header: the signature in the URL is the authorization. The
 // Content-Type must match what we asked the api to sign.

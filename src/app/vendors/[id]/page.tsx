@@ -7,10 +7,18 @@ import { AuthGuard } from '@/components/AuthGuard';
 import { AppShell } from '@/components/AppShell';
 import { useAuthStore } from '@/stores/auth';
 import { fetchVendor } from '@/lib/api/vendors';
-import { fetchDownloadUrl, fetchVendorChecklist } from '@/lib/api/documents';
+import {
+  fetchDownloadUrl,
+  fetchVendorChecklist,
+  staffConfirm,
+  staffUploadUrl,
+  uploadFileToUrl,
+} from '@/lib/api/documents';
 import { approveDocument, rejectDocument } from '@/lib/api/approvals';
 import { ApiError } from '@/lib/api/client';
-import { roleHasPermission } from '@/lib/permissions';
+import { hasPermission } from '@/lib/permissions';
+import { useToast } from '@/components/Toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { ChecklistItem, DocumentStatus, VendorDto } from '@/lib/types';
 
 const statusClass: Record<DocumentStatus, string> = {
@@ -24,11 +32,15 @@ const statusClass: Record<DocumentStatus, string> = {
 function VendorDetail() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const toast = useToast();
   const me = useAuthStore((s) => s.user);
-  const canApprove = me ? roleHasPermission(me.role, 'document:approve') : false;
+  const canApprove = hasPermission(me?.permissions, 'document:approve');
+  const canManage = hasPermission(me?.permissions, 'vendor:manage');
   const [vendor, setVendor] = useState<VendorDto | null>(null);
   const [items, setItems] = useState<ChecklistItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [rejectDocId, setRejectDocId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -53,16 +65,33 @@ function VendorDetail() {
     }
   };
 
-  const onDecide = async (documentId: string, decision: 'approve' | 'reject') => {
+  const onUpload = async (documentType: string, file: File) => {
+    setUploading(documentType);
     setError(null);
     try {
-      const comment =
-        decision === 'reject' ? (window.prompt('Reason for rejection (optional):') ?? undefined) : undefined;
+      const { documentId, url } = await staffUploadUrl(id, {
+        documentType,
+        contentType: file.type || 'application/octet-stream',
+      });
+      await uploadFileToUrl(url, file);
+      await staffConfirm(documentId);
+      await load();
+      toast.success(`${documentType} uploaded`);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Upload failed');
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const onDecide = async (documentId: string, decision: 'approve' | 'reject', comment?: string) => {
+    try {
       if (decision === 'approve') await approveDocument(documentId, comment);
       else await rejectDocument(documentId, comment);
       await load();
+      toast.success(decision === 'approve' ? 'Document approved' : 'Document rejected');
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Action failed');
+      toast.error(e instanceof ApiError ? e.message : 'Action failed');
     }
   };
 
@@ -84,8 +113,8 @@ function VendorDetail() {
       )}
 
       <h2 className="mt-8 text-base font-semibold text-ink">Compliance checklist</h2>
-      <div className="mt-3 overflow-hidden rounded-xl border border-line bg-panel">
-        <table className="w-full text-left text-sm">
+      <div className="mt-3 overflow-x-auto rounded-xl border border-line bg-panel">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-line text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-3 font-medium">Document</th>
@@ -136,12 +165,31 @@ function VendorDetail() {
                           Approve
                         </button>
                         <button
-                          onClick={() => onDecide(it.documentId!, 'reject')}
+                          onClick={() => setRejectDocId(it.documentId!)}
                           className="text-xs font-medium text-red-600 hover:underline"
                         >
                           Reject
                         </button>
                       </>
+                    )}
+                    {canManage && (
+                      <label className="cursor-pointer text-xs font-medium text-brand hover:underline">
+                        {uploading === it.documentType
+                          ? 'Uploading…'
+                          : it.status === 'MISSING'
+                            ? 'Upload'
+                            : 'Replace'}
+                        <input
+                          type="file"
+                          className="hidden"
+                          disabled={uploading !== null}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) void onUpload(it.documentType, f);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
                     )}
                   </div>
                 </td>
@@ -150,6 +198,18 @@ function VendorDetail() {
           </tbody>
         </table>
       </div>
+
+      {rejectDocId && (
+        <ConfirmDialog
+          title="Reject document"
+          message="Optionally tell the vendor why, so they can fix and re-upload."
+          confirmLabel="Reject"
+          danger
+          withReason
+          onConfirm={(reason) => onDecide(rejectDocId, 'reject', reason || undefined)}
+          onClose={() => setRejectDocId(null)}
+        />
+      )}
     </AppShell>
   );
 }

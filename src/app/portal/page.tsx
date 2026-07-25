@@ -14,6 +14,7 @@ import {
   uploadFileToUrl,
 } from '@/lib/api/documents';
 import { ApiError } from '@/lib/api/client';
+import { useToast } from '@/components/Toast';
 import type { ChecklistItem, DocumentStatus, VendorDto } from '@/lib/types';
 
 const statusClass: Record<DocumentStatus, string> = {
@@ -25,6 +26,7 @@ const statusClass: Record<DocumentStatus, string> = {
 };
 
 function Portal() {
+  const toast = useToast();
   const me = useAuthStore((s) => s.user);
   const router = useRouter();
   const [vendor, setVendor] = useState<VendorDto | null>(null);
@@ -61,8 +63,9 @@ function Portal() {
       await uploadFileToUrl(url, file); // straight to storage, not our api
       await confirmUpload(documentId);
       await load();
+      toast.success(`${documentType} uploaded`);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Upload failed');
+      toast.error(e instanceof ApiError ? e.message : 'Upload failed');
     } finally {
       setBusy(null);
     }

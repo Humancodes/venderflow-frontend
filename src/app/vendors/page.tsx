@@ -8,7 +8,7 @@ import { AddVendorDialog } from '@/components/AddVendorDialog';
 import { useAuthStore } from '@/stores/auth';
 import { fetchVendors, inviteVendor } from '@/lib/api/vendors';
 import { ApiError } from '@/lib/api/client';
-import { roleHasPermission } from '@/lib/permissions';
+import { hasPermission } from '@/lib/permissions';
 import type { VendorDto, VendorStatus, VendorsResponse } from '@/lib/types';
 
 const LIMIT = 10;
@@ -24,8 +24,8 @@ const statusClass: Record<VendorStatus, string> = {
 
 function VendorDirectory() {
   const me = useAuthStore((s) => s.user);
-  const canCreate = me ? roleHasPermission(me.role, 'vendor:create') : false;
-  const canManage = me ? roleHasPermission(me.role, 'vendor:manage') : false;
+  const canCreate = hasPermission(me?.permissions, 'vendor:create');
+  const canManage = hasPermission(me?.permissions, 'vendor:manage');
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<VendorStatus | ''>('');
@@ -110,8 +110,8 @@ function VendorDirectory() {
 
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-line bg-panel">
-        <table className="w-full text-left text-sm">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-line bg-panel">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-line text-xs uppercase text-muted">
             <tr>
               <th className="px-4 py-3 font-medium">Vendor</th>
