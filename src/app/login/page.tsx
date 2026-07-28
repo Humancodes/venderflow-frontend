@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { login } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/client';
 import { AuthLayout, inputClass, primaryButtonClass } from '@/components/AuthLayout';
+import { VerifyNotice } from '@/components/VerifyNotice';
 import type { AuthResponse, CompanyChoice, LoginResult } from '@/lib/types';
 
 const schema = z.object({
@@ -25,6 +26,8 @@ export default function LoginPage() {
   const [choices, setChoices] = useState<CompanyChoice[] | null>(null);
   const [creds, setCreds] = useState<FormValues | null>(null);
   const [selecting, setSelecting] = useState(false);
+  // Set when a correct password hits an unverified account.
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -51,6 +54,10 @@ export default function LoginPage() {
   };
 
   const handleResult = (res: LoginResult) => {
+    if ('needsVerification' in res) {
+      setPendingEmail(res.email);
+      return;
+    }
     if ('needsCompanySelection' in res) {
       setChoices(res.companies);
       return;
@@ -80,6 +87,26 @@ export default function LoginPage() {
       setSelecting(false);
     }
   };
+
+  if (pendingEmail) {
+    return (
+      <AuthLayout
+        title="Verify your email"
+        subtitle="Your account isn't verified yet."
+        footer={
+          <button
+            type="button"
+            onClick={() => setPendingEmail(null)}
+            className="font-medium text-brand hover:underline"
+          >
+            ← Back to sign in
+          </button>
+        }
+      >
+        <VerifyNotice email={pendingEmail} />
+      </AuthLayout>
+    );
+  }
 
   if (choices) {
     return (

@@ -65,7 +65,15 @@ export type CompanySelectionResponse = {
   needsCompanySelection: true;
   companies: CompanyChoice[];
 };
-export type LoginResult = AuthResponse | CompanySelectionResponse;
+
+// Returned by signup (always) and by login when a correct password hits an
+// unverified account: the email must be verified before a session can start.
+export type VerificationPendingResponse = {
+  needsVerification: true;
+  email: string;
+};
+
+export type LoginResult = AuthResponse | CompanySelectionResponse | VerificationPendingResponse;
 
 export type AcceptInviteBody = {
   token: string;

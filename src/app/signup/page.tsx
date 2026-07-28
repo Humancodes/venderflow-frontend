@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { signup } from '@/lib/api/auth';
 import { ApiError } from '@/lib/api/client';
 import { AuthLayout, inputClass, primaryButtonClass } from '@/components/AuthLayout';
+import { VerifyNotice } from '@/components/VerifyNotice';
 
 // Mirrors the api's signupSchema (companyName, email, password min 8).
 const schema = z.object({
@@ -19,8 +19,8 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function SignupPage() {
-  const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -30,12 +30,31 @@ export default function SignupPage() {
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
     try {
-      await signup(values);
-      router.push('/dashboard');
+      const res = await signup(values);
+      setPendingEmail(res.email);
     } catch (e) {
       setServerError(e instanceof ApiError ? e.message : 'Something went wrong');
     }
   };
+
+  if (pendingEmail) {
+    return (
+      <AuthLayout
+        title="Check your inbox"
+        subtitle="One more step to activate your workspace."
+        footer={
+          <>
+            Already verified?{' '}
+            <Link href="/login" className="font-medium text-brand hover:underline">
+              Sign in
+            </Link>
+          </>
+        }
+      >
+        <VerifyNotice email={pendingEmail} />
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout

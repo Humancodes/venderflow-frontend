@@ -6,7 +6,7 @@ import { AppShell } from '@/components/AppShell';
 
 // Routes that render their own layout and must NOT get the app sidebar:
 // public auth pages, the vendor portal (its own chrome), and the root redirect.
-const BARE_PREFIXES = ['/login', '/signup', '/accept-invite', '/portal'];
+const BARE_PREFIXES = ['/login', '/signup', '/accept-invite', '/verify-email', '/portal'];
 
 function isBare(pathname: string): boolean {
   if (pathname === '/') return true;
