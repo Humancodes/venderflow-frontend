@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AppShell } from '@/components/AppShell';
+import { PageContainer } from '@/components/AppShell';
 import { useAuthStore } from '@/stores/auth';
 import { fetchSubscription, startCheckout } from '@/lib/api/billing';
 import { ApiError } from '@/lib/api/client';
@@ -45,7 +44,7 @@ function Billing() {
     sub && sub.vendorLimit ? Math.min(100, Math.round((sub.vendorsUsed / sub.vendorLimit) * 100)) : 0;
 
   return (
-    <AppShell title="Billing">
+    <PageContainer title="Billing">
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
       {sub && (
@@ -97,14 +96,10 @@ function Billing() {
       {!canManage && (
         <p className="mt-4 text-xs text-muted">Only admins can change the plan.</p>
       )}
-    </AppShell>
+    </PageContainer>
   );
 }
 
 export default function BillingPage() {
-  return (
-    <AuthGuard>
-      <Billing />
-    </AuthGuard>
-  );
+  return <Billing />;
 }

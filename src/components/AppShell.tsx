@@ -45,7 +45,9 @@ function initials(email: string): string {
   return (email.split('@')[0] ?? '').slice(0, 2).toUpperCase() || '?';
 }
 
-export function AppShell({
+// The title bar + padded main. Rendered by each page, so per-page title and
+// actions live with the page while the surrounding shell stays mounted.
+export function PageContainer({
   title,
   actions,
   children,
@@ -54,6 +56,23 @@ export function AppShell({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  return (
+    <>
+      <div className="border-b border-line bg-panel">
+        <div className="flex items-center justify-between gap-3 px-4 py-5 sm:px-8">
+          <h1 className="text-lg font-semibold text-ink">{title}</h1>
+          {actions}
+        </div>
+      </div>
+      <main className="px-4 py-6 sm:px-8">{children}</main>
+    </>
+  );
+}
+
+// The persistent chrome: sidebar + mobile drawer. Mounted once by AppChrome and
+// kept mounted across navigation, so the sidebar never rebuilds and the company
+// lookup runs only once. Only {children} (the routed page) swaps on navigation.
+export function AppShell({ children }: { children: ReactNode }) {
   const me = useAuthStore((s) => s.user);
   const router = useRouter();
   const pathname = usePathname();
@@ -207,13 +226,7 @@ export function AppShell({
           <span className="text-base font-bold tracking-tight text-brand">VendorFlow</span>
         </div>
 
-        <div className="border-b border-line bg-panel">
-          <div className="flex items-center justify-between gap-3 px-4 py-5 sm:px-8">
-            <h1 className="text-lg font-semibold text-ink">{title}</h1>
-            {actions}
-          </div>
-        </div>
-        <main className="px-4 py-6 sm:px-8">{children}</main>
+        {children}
       </div>
     </div>
   );

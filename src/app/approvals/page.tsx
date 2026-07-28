@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AppShell } from '@/components/AppShell';
+import { PageContainer } from '@/components/AppShell';
 import { approveDocument, fetchApprovalQueue, rejectDocument } from '@/lib/api/approvals';
 import { ApiError } from '@/lib/api/client';
 import { useToast } from '@/components/Toast';
@@ -46,7 +45,7 @@ function ApprovalsQueue() {
   };
 
   return (
-    <AppShell title="Approvals">
+    <PageContainer title="Approvals">
       <p className="text-sm text-muted">Documents awaiting your review.</p>
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
@@ -94,14 +93,10 @@ function ApprovalsQueue() {
           </div>
         ))}
       </div>
-    </AppShell>
+    </PageContainer>
   );
 }
 
 export default function ApprovalsPage() {
-  return (
-    <AuthGuard>
-      <ApprovalsQueue />
-    </AuthGuard>
-  );
+  return <ApprovalsQueue />;
 }

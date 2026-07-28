@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider';
+import { AppChrome } from '@/components/AppChrome';
 import { ToastProvider } from '@/components/Toast';
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <ToastProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <AppChrome>{children}</AppChrome>
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>

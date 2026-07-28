@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AppShell } from '@/components/AppShell';
+import { PageContainer } from '@/components/AppShell';
 import { useAuthStore } from '@/stores/auth';
 import { createRole, deleteRole, fetchRoles, updateRole } from '@/lib/api/roles';
 import { ApiError } from '@/lib/api/client';
@@ -80,16 +79,16 @@ function RolesSettings() {
 
   if (!canManage) {
     return (
-      <AppShell title="Settings">
+      <PageContainer title="Settings">
         <div className="rounded-xl border border-line bg-panel p-6 text-sm text-muted">
           Only admins can manage roles.
         </div>
-      </AppShell>
+      </PageContainer>
     );
   }
 
   return (
-    <AppShell title="Settings">
+    <PageContainer title="Settings">
       <h2 className="text-base font-semibold text-ink">Roles &amp; permissions</h2>
       <p className="mt-1 text-sm text-muted">
         Define roles and toggle what each can do. System roles are locked.
@@ -172,14 +171,10 @@ function RolesSettings() {
           onClose={() => setRoleToDelete(null)}
         />
       )}
-    </AppShell>
+    </PageContainer>
   );
 }
 
 export default function SettingsPage() {
-  return (
-    <AuthGuard>
-      <RolesSettings />
-    </AuthGuard>
-  );
+  return <RolesSettings />;
 }

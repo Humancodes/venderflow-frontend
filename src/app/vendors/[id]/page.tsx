@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AppShell } from '@/components/AppShell';
+import { PageContainer } from '@/components/AppShell';
 import { useAuthStore } from '@/stores/auth';
 import { fetchVendor } from '@/lib/api/vendors';
 import {
@@ -96,7 +95,7 @@ function VendorDetail() {
   };
 
   return (
-    <AppShell title={vendor ? vendor.name : 'Vendor'}>
+    <PageContainer title={vendor ? vendor.name : 'Vendor'}>
       <Link href="/vendors" className="text-sm text-brand hover:underline">
         ← Back to directory
       </Link>
@@ -210,14 +209,10 @@ function VendorDetail() {
           onClose={() => setRejectDocId(null)}
         />
       )}
-    </AppShell>
+    </PageContainer>
   );
 }
 
 export default function VendorDetailPage() {
-  return (
-    <AuthGuard>
-      <VendorDetail />
-    </AuthGuard>
-  );
+  return <VendorDetail />;
 }

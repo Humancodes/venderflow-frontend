@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AppShell } from '@/components/AppShell';
+import { PageContainer } from '@/components/AppShell';
 import { AddVendorDialog } from '@/components/AddVendorDialog';
 import { useAuthStore } from '@/stores/auth';
 import { fetchVendors, inviteVendor } from '@/lib/api/vendors';
@@ -75,7 +74,7 @@ function VendorDirectory() {
   ) : undefined;
 
   return (
-    <AppShell title="Vendor Directory" actions={actions}>
+    <PageContainer title="Vendor Directory" actions={actions}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted">
           {data ? `${data.total} vendor${data.total === 1 ? '' : 's'}` : 'Loading…'}
@@ -186,14 +185,10 @@ function VendorDirectory() {
       </div>
 
       {showAdd && <AddVendorDialog onClose={() => setShowAdd(false)} onAdded={() => void load()} />}
-    </AppShell>
+    </PageContainer>
   );
 }
 
 export default function VendorsPage() {
-  return (
-    <AuthGuard>
-      <VendorDirectory />
-    </AuthGuard>
-  );
+  return <VendorDirectory />;
 }

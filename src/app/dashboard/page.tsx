@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AppShell } from '@/components/AppShell';
+import { PageContainer } from '@/components/AppShell';
 import { useAuthStore } from '@/stores/auth';
 import { fetchActivity, fetchMetrics } from '@/lib/api/dashboard';
 import { ApiError } from '@/lib/api/client';
@@ -40,7 +39,7 @@ function Overview() {
   }, []);
 
   return (
-    <AppShell title="Dashboard">
+    <PageContainer title="Dashboard">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted">Signed in as {me?.email}.</p>
         <Link
@@ -77,14 +76,10 @@ function Overview() {
           </ul>
         )}
       </div>
-    </AppShell>
+    </PageContainer>
   );
 }
 
 export default function DashboardPage() {
-  return (
-    <AuthGuard>
-      <Overview />
-    </AuthGuard>
-  );
+  return <Overview />;
 }

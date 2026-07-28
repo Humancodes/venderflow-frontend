@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AppShell } from '@/components/AppShell';
+import { PageContainer } from '@/components/AppShell';
 import { InviteDialog } from '@/components/InviteDialog';
 import { useAuthStore } from '@/stores/auth';
 import { fetchPendingInvites, fetchUsers, updateUser } from '@/lib/api/users';
@@ -76,7 +75,7 @@ function TeamScreen() {
     ) : undefined;
 
   return (
-    <AppShell title="Team Members" actions={actions}>
+    <PageContainer title="Team Members" actions={actions}>
       {!canRead ? (
         <div className="rounded-xl border border-line bg-panel p-6">
           <p className="text-sm text-muted">
@@ -204,14 +203,10 @@ function TeamScreen() {
           onClose={() => setUserToDeactivate(null)}
         />
       )}
-    </AppShell>
+    </PageContainer>
   );
 }
 
 export default function TeamPage() {
-  return (
-    <AuthGuard>
-      <TeamScreen />
-    </AuthGuard>
-  );
+  return <TeamScreen />;
 }

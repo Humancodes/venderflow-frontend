@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AuthGuard } from '@/components/AuthGuard';
-import { AppShell } from '@/components/AppShell';
+import { PageContainer } from '@/components/AppShell';
 import { useAuthStore } from '@/stores/auth';
 import { createRequirement, deleteRequirement, fetchRequirements } from '@/lib/api/documents';
 import { ApiError } from '@/lib/api/client';
@@ -63,7 +62,7 @@ function Requirements() {
   };
 
   return (
-    <AppShell title="Documents">
+    <PageContainer title="Documents">
       <p className="text-sm text-muted">
         The document checklist every vendor must complete.
       </p>
@@ -150,14 +149,10 @@ function Requirements() {
           onClose={() => setReqToDelete(null)}
         />
       )}
-    </AppShell>
+    </PageContainer>
   );
 }
 
 export default function DocumentsPage() {
-  return (
-    <AuthGuard>
-      <Requirements />
-    </AuthGuard>
-  );
+  return <Requirements />;
 }
