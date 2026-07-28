@@ -55,7 +55,17 @@ export type SignupBody = {
 export type LoginBody = {
   email: string;
   password: string;
+  // Set on the second step when an email belongs to more than one company.
+  companyId?: string;
 };
+
+// Returned when email + password match multiple companies: the user must pick.
+export type CompanyChoice = { companyId: string; companyName: string };
+export type CompanySelectionResponse = {
+  needsCompanySelection: true;
+  companies: CompanyChoice[];
+};
+export type LoginResult = AuthResponse | CompanySelectionResponse;
 
 export type AcceptInviteBody = {
   token: string;

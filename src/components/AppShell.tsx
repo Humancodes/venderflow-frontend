@@ -80,6 +80,22 @@ export function AppShell({
     router.replace('/login');
   };
 
+  // Switch workspace. Because each company is a separate account (email is
+  // unique only per company and passwords are independent), switching means
+  // re-authenticating into the other company. We pre-fill the email so the
+  // user only confirms their password on the login screen.
+  const onSwitchCompany = async () => {
+    if (me) {
+      try {
+        window.localStorage.setItem('vf_switch_email', me.email);
+      } catch {
+        /* ignore storage failures */
+      }
+    }
+    await logout();
+    router.replace('/login');
+  };
+
   const canSee = (perm?: Permission) => !perm || hasPermission(me?.permissions, perm);
 
   const sidebar = (
@@ -99,6 +115,19 @@ export function AppShell({
             <p className="truncate text-sm font-medium">{company?.name ?? 'Loading…'}</p>
             <p className="truncate text-xs text-white/60">{company ? PLAN_LABEL[company.plan] : ''}</p>
           </div>
+          <button
+            onClick={onSwitchCompany}
+            title="Switch company"
+            aria-label="Switch company"
+            className="shrink-0 text-white/50 hover:text-white"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 3l4 4-4 4" />
+              <path d="M20 7H4" />
+              <path d="M8 21l-4-4 4-4" />
+              <path d="M4 17h16" />
+            </svg>
+          </button>
         </div>
       </div>
 
