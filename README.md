@@ -50,6 +50,23 @@ flowchart TD
 
 ---
 
+## Tech stack, explained
+
+Every frontend dependency and the exact role it plays here.
+
+| Technology | What it is | How it is wired in VendorFlow |
+|---|---|---|
+| **Next.js 15 (App Router)** | A React meta-framework: file-based routing, layouts, and a production build/deploy target. | Routes live in `src/app`. The root `layout.tsx` hosts the Toast and Auth providers plus `AppChrome`, which keeps the sidebar mounted across navigation so link clicks swap only the page body. |
+| **React 19** | The UI library. | Every page is a client component using hooks (`useState`, `useEffect`, `useCallback`) for local state and data loading. |
+| **Zustand** | A tiny hook-based global state store. | `stores/auth.ts` holds the current user and the access token. The token lives **in memory only** (never `localStorage`), so an XSS bug cannot scrape it; the httpOnly refresh cookie restores it on reload. |
+| **Tailwind CSS v4** | A utility-first CSS framework with theme tokens defined in CSS. | Brand tokens (green `#16352B`, gold `#C2A24A`) declared once in `globals.css` via `@theme`, generating utilities like `bg-brand` and `text-gold`. No `tailwind.config.js`. |
+| **react-hook-form + @hookform/resolvers + Zod** | Form-state management plus schema validation. | Used on the form-heavy pages (login, signup, accept-invite, verify-email, dialogs) via `zodResolver`. Schemas mirror the API's contracts so the client and server agree. |
+| **Native fetch wrapper** | A hand-rolled typed API client (no React Query). | `lib/api/client.ts` attaches the Bearer token, sends `credentials: 'include'` for the refresh cookie, and on a `401` performs a **single-flight** refresh then retries once. Domain modules in `lib/api/*` wrap it per resource. |
+
+The deliberate choice throughout is minimal state: one Zustand store for auth, per-page `useState` for data, and an explicit fetch wrapper rather than a data-fetching library, so the auth-refresh mechanics stay visible and owned.
+
+---
+
 ## Project structure
 
 ```
