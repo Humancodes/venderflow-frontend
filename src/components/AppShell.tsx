@@ -4,10 +4,10 @@ import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
-import { logout } from '@/lib/api/auth';
+import { createWorkspace, listWorkspaces, logout, switchWorkspace } from '@/lib/api/auth';
 import { fetchMyCompany } from '@/lib/api/company';
 import { hasPermission, type Permission } from '@/lib/permissions';
-import type { CompanyDto, PlanTier, Role } from '@/lib/types';
+import type { CompanyDto, PlanTier, Role, WorkspaceSummary } from '@/lib/types';
 
 type NavItem = { label: string; href?: string; perm?: Permission; soon?: boolean; icon: ReactNode };
 
@@ -78,6 +78,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [company, setCompany] = useState<CompanyDto | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [workspaces, setWorkspaces] = useState<WorkspaceSummary[] | null>(null);
+  const [newName, setNewName] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (me && me.role === 'VENDOR') router.replace('/portal');
@@ -89,9 +93,19 @@ export function AppShell({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // Close the mobile drawer whenever the route changes.
+  // Load the account's workspaces once, for the switcher (staff only).
+  useEffect(() => {
+    if (me && me.role !== 'VENDOR') {
+      listWorkspaces()
+        .then(setWorkspaces)
+        .catch(() => {});
+    }
+  }, [me]);
+
+  // Close drawer + switcher whenever the route changes.
   useEffect(() => {
     setMenuOpen(false);
+    setSwitcherOpen(false);
   }, [pathname]);
 
   const onLogout = async () => {
@@ -99,20 +113,32 @@ export function AppShell({ children }: { children: ReactNode }) {
     router.replace('/login');
   };
 
-  // Switch workspace. Because each company is a separate account (email is
-  // unique only per company and passwords are independent), switching means
-  // re-authenticating into the other company. We pre-fill the email so the
-  // user only confirms their password on the login screen.
-  const onSwitchCompany = async () => {
-    if (me) {
-      try {
-        window.localStorage.setItem('vf_switch_email', me.email);
-      } catch {
-        /* ignore storage failures */
-      }
+  // Real workspace switch: swap the active session server-side, then hard-reload
+  // so every workspace-scoped view (sidebar, permissions, data) refetches.
+  const onSwitchCompany = async (companyId: string) => {
+    if (companyId === me?.companyId) {
+      setSwitcherOpen(false);
+      return;
     }
-    await logout();
-    router.replace('/login');
+    setBusy(true);
+    try {
+      await switchWorkspace(companyId);
+      window.location.href = '/dashboard';
+    } catch {
+      setBusy(false);
+    }
+  };
+
+  const onCreateWorkspace = async () => {
+    const name = newName.trim();
+    if (!name) return;
+    setBusy(true);
+    try {
+      await createWorkspace(name);
+      window.location.href = '/dashboard';
+    } catch {
+      setBusy(false);
+    }
   };
 
   const canSee = (perm?: Permission) => !perm || hasPermission(me?.permissions, perm);
@@ -126,27 +152,57 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
           <span className="text-lg font-bold tracking-tight">VendorFlow</span>
         </div>
-        <div className="mt-4 flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-xs font-semibold text-brand">
-            {(company?.name?.[0] ?? '·').toUpperCase()}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{company?.name ?? 'Loading…'}</p>
-            <p className="truncate text-xs text-white/60">{company ? PLAN_LABEL[company.plan] : ''}</p>
-          </div>
+        <div className="relative mt-4">
           <button
-            onClick={onSwitchCompany}
-            title="Switch company"
-            aria-label="Switch company"
-            className="shrink-0 text-white/50 hover:text-white"
+            onClick={() => setSwitcherOpen((v) => !v)}
+            className="flex w-full items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2 text-left hover:bg-white/10"
+            aria-haspopup="true"
+            aria-expanded={switcherOpen}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 3l4 4-4 4" />
-              <path d="M20 7H4" />
-              <path d="M8 21l-4-4 4-4" />
-              <path d="M4 17h16" />
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-xs font-semibold text-brand">
+              {(company?.name?.[0] ?? '·').toUpperCase()}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium">{company?.name ?? 'Loading…'}</p>
+              <p className="truncate text-xs text-white/60">{company ? PLAN_LABEL[company.plan] : ''}</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-white/50">
+              <path d="M8 9l4-4 4 4" />
+              <path d="M16 15l-4 4-4-4" />
             </svg>
           </button>
+
+          {switcherOpen && (
+            <div className="absolute left-0 right-0 top-full z-40 mt-1 rounded-lg border border-white/10 bg-brand-light p-1 shadow-lg">
+              <p className="px-2 py-1 text-[10px] uppercase tracking-wide text-white/40">Workspaces</p>
+              {workspaces?.map((w) => (
+                <button
+                  key={w.companyId}
+                  onClick={() => onSwitchCompany(w.companyId)}
+                  disabled={busy}
+                  className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm hover:bg-white/10 disabled:opacity-50"
+                >
+                  <span className="truncate">{w.companyName}</span>
+                  {w.companyId === me?.companyId && <span className="text-gold">✓</span>}
+                </button>
+              ))}
+              <div className="mt-1 border-t border-white/10 p-1">
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="New workspace name"
+                  className="w-full rounded-md bg-white/10 px-2 py-1.5 text-sm text-white placeholder:text-white/40 outline-none"
+                />
+                <button
+                  onClick={onCreateWorkspace}
+                  disabled={busy || !newName.trim()}
+                  className="mt-1 w-full rounded-md bg-gold px-2 py-1.5 text-sm font-medium text-brand hover:opacity-90 disabled:opacity-50"
+                >
+                  ＋ Create workspace
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

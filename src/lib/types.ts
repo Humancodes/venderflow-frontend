@@ -34,17 +34,22 @@ export type HealthResponse = {
 
 // Mirrors api: src/contracts/auth.ts
 export type AuthUser = {
-  id: string;
+  id: string; // the active membership id
+  accountId: string; // the global identity
   email: string;
   role: Role; // legacy; used only for VENDOR routing
   permissions: string[]; // effective permissions, for UI gating
-  companyId: string;
+  companyId: string; // the active workspace
 };
 
 export type AuthResponse = {
   user: AuthUser;
   accessToken: string;
 };
+
+// A workspace the account belongs to (for the switcher).
+export type WorkspaceSummary = { companyId: string; companyName: string; role: Role };
+export type WorkspacesResponse = { workspaces: WorkspaceSummary[] };
 
 export type SignupBody = {
   companyName: string;

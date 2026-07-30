@@ -6,6 +6,8 @@ import type {
   LoginResult,
   SignupBody,
   VerificationPendingResponse,
+  WorkspaceSummary,
+  WorkspacesResponse,
 } from '@/lib/types';
 import { apiFetch } from './client';
 
@@ -69,4 +71,33 @@ export async function acceptInvite(body: AcceptInviteBody): Promise<AuthResponse
 export async function logout(): Promise<void> {
   await apiFetch('/auth/logout', { method: 'POST' }, false).catch(() => {});
   useAuthStore.getState().clear();
+}
+
+// --- Multi-workspace ---
+
+// The workspaces the signed-in account belongs to (for the switcher).
+export async function listWorkspaces(): Promise<WorkspaceSummary[]> {
+  const data = await apiFetch<WorkspacesResponse>('/workspaces');
+  return data.workspaces;
+}
+
+// Switch the active workspace. Returns a new session scoped to it and updates
+// the store; the caller typically reloads so all workspace-scoped data refetches.
+export async function switchWorkspace(companyId: string): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>('/auth/switch-workspace', {
+    method: 'POST',
+    body: JSON.stringify({ companyId }),
+  });
+  useAuthStore.getState().setAuth(data.user, data.accessToken);
+  return data;
+}
+
+// Create a new workspace and switch into it.
+export async function createWorkspace(name: string): Promise<AuthResponse> {
+  const data = await apiFetch<AuthResponse>('/workspaces', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+  useAuthStore.getState().setAuth(data.user, data.accessToken);
+  return data;
 }
