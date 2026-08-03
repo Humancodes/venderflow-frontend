@@ -82,8 +82,21 @@ export type LoginResult = AuthResponse | CompanySelectionResponse | Verification
 
 export type AcceptInviteBody = {
   token: string;
-  password: string;
+  // Only needed when the invitee has no account yet; existing accounts just gain
+  // a membership.
+  password?: string;
 };
+
+// Result of validating an invite token before showing the accept form.
+export type InviteCheckResult =
+  | { valid: false }
+  | {
+      valid: true;
+      email: string;
+      companyName: string;
+      roleName: string | null;
+      hasAccount: boolean;
+    };
 
 // Mirrors api: src/contracts/user.ts
 export type UserDto = {

@@ -2,6 +2,7 @@ import { useAuthStore } from '@/stores/auth';
 import type {
   AcceptInviteBody,
   AuthResponse,
+  InviteCheckResult,
   LoginBody,
   LoginResult,
   SignupBody,
@@ -56,6 +57,15 @@ export async function resendVerification(email: string): Promise<void> {
     method: 'POST',
     body: JSON.stringify({ email }),
   }, false);
+}
+
+// Validate an invite token before showing the accept form (never consumes it).
+export async function checkInvite(token: string): Promise<InviteCheckResult> {
+  return apiFetch<InviteCheckResult>(
+    `/auth/invite?token=${encodeURIComponent(token)}`,
+    undefined,
+    false,
+  );
 }
 
 export async function acceptInvite(body: AcceptInviteBody): Promise<AuthResponse> {

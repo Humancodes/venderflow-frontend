@@ -87,11 +87,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (me && me.role === 'VENDOR') router.replace('/portal');
   }, [me, router]);
 
+  // Refetch the active company whenever the workspace changes (incl. on switch),
+  // so the sidebar header updates without a full page reload.
   useEffect(() => {
     fetchMyCompany()
       .then((r) => setCompany(r.company))
       .catch(() => {});
-  }, []);
+  }, [me?.companyId]);
 
   // Load the account's workspaces once, for the switcher (staff only).
   useEffect(() => {
@@ -113,8 +115,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     router.replace('/login');
   };
 
-  // Real workspace switch: swap the active session server-side, then hard-reload
-  // so every workspace-scoped view (sidebar, permissions, data) refetches.
+  // Soft workspace switch: swap the active session server-side + in the store,
+  // then client-navigate to the dashboard. AppChrome is keyed by companyId, so
+  // the page content remounts and refetches with the new token while this
+  // sidebar stays mounted (no full-page reload / flash).
   const onSwitchCompany = async (companyId: string) => {
     if (companyId === me?.companyId) {
       setSwitcherOpen(false);
@@ -123,7 +127,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     setBusy(true);
     try {
       await switchWorkspace(companyId);
-      window.location.href = '/dashboard';
+      setSwitcherOpen(false);
+      setBusy(false);
+      router.push('/dashboard');
     } catch {
       setBusy(false);
     }
@@ -135,7 +141,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     setBusy(true);
     try {
       await createWorkspace(name);
-      window.location.href = '/dashboard';
+      setNewName('');
+      setSwitcherOpen(false);
+      // Refresh the switcher list so the new workspace appears.
+      const ws = await listWorkspaces().catch(() => null);
+      if (ws) setWorkspaces(ws);
+      setBusy(false);
+      router.push('/dashboard');
     } catch {
       setBusy(false);
     }
